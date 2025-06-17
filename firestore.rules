@@ -1,0 +1,85 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ฟังก์ชันตรวจสอบว่าผู้ใช้ล็อกอินแล้วหรือไม่
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // ฟังก์ชันตรวจสอบว่าผู้ใช้เป็นเจ้าของข้อมูลหรือไม่
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    // ฟังก์ชันตรวจสอบว่าผู้ใช้มีบทบาทเป็น admin หรือไม่
+    function isAdmin() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // ฟังก์ชันตรวจสอบว่าผู้ใช้มีบทบาทเป็น manager หรือไม่
+    function isManager() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager';
+    }
+    
+    // กฎสำหรับคอลเลกชัน users
+    match /users/{userId} {
+      // อ่านข้อมูลได้เฉพาะเจ้าของข้อมูล, admin และ manager
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin() || isManager());
+      
+      // เขียนข้อมูลได้เฉพาะ admin หรือเจ้าของข้อมูล (เฉพาะบางฟิลด์)
+      allow create: if isAdmin();
+      allow update: if isAuthenticated() && (isAdmin() || (isOwner(userId) && 
+        request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['displayName', 'phoneNumber', 'email', 'password', 'profileImage', 'updatedAt'])));
+      allow delete: if isAdmin();
+    }
+    
+    // กฎสำหรับคอลเลกชัน attendance
+    match /attendance/{attendanceId} {
+      // อ่านข้อมูลได้เฉพาะเจ้าของข้อมูล, admin และ manager
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin() || isManager()
+      );
+      
+      // เขียนข้อมูลได้เฉพาะเจ้าของข้อมูลและ admin
+      allow create: if isAuthenticated() && (
+        request.resource.data.userId == request.auth.uid || isAdmin()
+      );
+      
+      allow update: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      
+      allow delete: if isAdmin();
+    }
+    
+    // กฎสำหรับคอลเลกชัน leaves
+    match /leaves/{leaveId} {
+      // อ่านข้อมูลได้เฉพาะเจ้าของข้อมูล, admin และ manager
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin() || isManager()
+      );
+      
+      // สร้างคำขอลาได้เฉพาะผู้ใช้ที่ล็อกอินแล้ว
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      
+      // อัปเดตสถานะคำขอลาได้เฉพาะ admin และ manager
+      allow update: if isAuthenticated() && (
+        (isAdmin() || isManager()) || 
+        (resource.data.userId == request.auth.uid && 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reason', 'attachments', 'updatedAt']))
+      );
+      
+      // ลบคำขอลาได้เฉพาะ admin หรือเจ้าของข้อมูล (กรณียังไม่อนุมัติ)
+      allow delete: if isAuthenticated() && (
+        isAdmin() || (resource.data.userId == request.auth.uid && resource.data.status == 'pending')
+      );
+    }
+    
+    // กฎเริ่มต้นสำหรับทุกคอลเลกชันที่ไม่ได้กำหนดกฎเฉพาะ
+    match /{document=**} {
+      // ปิดการเข้าถึงทั้งหมดสำหรับคอลเลกชันที่ไม่ได้กำหนดกฎเฉพาะ
+      allow read, write: if false;
+    }
+  }
+}
