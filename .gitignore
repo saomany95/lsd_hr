@@ -9,29 +9,47 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+jspm_packages/
 
 # testing
 /coverage
+*.lcov
+.nyc_output
 
 # next.js
 /.next/
 /out/
+.next
+out
 
 # production
 /build
+build/Release
 
 # misc
 .DS_Store
 *.pem
+.lock-wscript
+bower_components
+web_modules/
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+logs
+*.log
+lerna-debug.log*
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
-# env files (can opt-in for committing if needed)
-.env*
+# local env files
+.env
+.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # vercel
 .vercel
@@ -39,3 +57,26 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Cache directories
+.npm
+.eslintcache
+.stylelintcache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+.node_repl_history
+.cache
+.parcel-cache
+.temp
+.docusaurus
+
+# Other
+*.tgz
+.yarn-integrity
+.serverless/
+.fusebox/
+.dynamodb/
+.tern-port
+.vscode-test
