@@ -7,6 +7,7 @@ import { getAllOrganizations } from '@/firebase/organizations';
 import { getDepartmentsByOrganization } from '@/firebase/departments';
 import { getPositionsByDepartment } from '@/firebase/positions';
 import { getUserById, getAllUsers } from '@/firebase/users';
+import { getAllOffices } from '@/firebase/offices';
 import Link from 'next/link';
 import { ArrowLeft, Save, User, Briefcase, MapPin, Calendar, AlertCircle, Check, RefreshCw, Repeat, Trash2, AlertTriangle, Building2 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -14,15 +15,14 @@ import toast from 'react-hot-toast';
 export default function EditEmployee() {
   const router = useRouter();
   const params = useParams();
-  const employeeId = params.id;
-  
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState('basic'); // 'basic', 'work', 'payroll', 'organization'
+  const [activeTab, setActiveTab] = useState('basic');
   const [organizations, setOrganizations] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [positions, setPositions] = useState([]);
+  const [offices, setOffices] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [showUsersList, setShowUsersList] = useState(false);
   const [userIdError, setUserIdError] = useState(null);
@@ -46,9 +46,9 @@ export default function EditEmployee() {
       contactEmail: '',
       contactPhone: '',
     },
-    address: {
-      village: '',
-      district: '',
+      address: {
+        village: '',
+        district: '',
       province: '',
     },
     employmentInfo: {
@@ -64,6 +64,7 @@ export default function EditEmployee() {
       endDate: '',
       supervisor: '',
       workLocation: '',
+      officeId: '',
     },
     payrollInfo: {
       salary: '',
@@ -81,9 +82,9 @@ export default function EditEmployee() {
   });
 
   // ฟังก์ชันสำหรับดึงข้อมูลพนักงาน
-  const fetchEmployee = async () => {
-    try {
-      setLoading(true);
+    const fetchEmployee = async () => {
+      try {
+        setLoading(true);
       const employeeData = await getEmployeeById(params.id);
       
       if (!employeeData) {
@@ -93,10 +94,10 @@ export default function EditEmployee() {
       }
       
       console.log('Employee data from database:', employeeData);
-      
+
       // สร้าง formData ที่มีโครงสร้างที่ถูกต้อง โดยรองรับทั้งข้อมูลเก่าและใหม่
       const updatedFormData = {
-        personalInfo: {
+            personalInfo: {
           firstName: employeeData.personalInfo?.firstName || employeeData.firstName || '',
           lastName: employeeData.personalInfo?.lastName || employeeData.lastName || '',
           firstName_lo: employeeData.personalInfo?.firstName_lo || employeeData.firstName_lo || '',
@@ -109,12 +110,12 @@ export default function EditEmployee() {
           contactEmail: employeeData.personalInfo?.contactEmail || employeeData.email || '',
           contactPhone: employeeData.personalInfo?.contactPhone || employeeData.phoneNumber || '',
         },
-        address: {
+              address: {
           village: employeeData.address?.village || employeeData.personalInfo?.address?.village || '',
           district: employeeData.address?.district || employeeData.personalInfo?.address?.district || '',
           province: employeeData.address?.province || employeeData.personalInfo?.address?.province || '',
-        },
-        employmentInfo: {
+            },
+            employmentInfo: {
           employeeId: employeeData.employmentInfo?.employeeId || employeeData.employeeId || '',
           organizationId: employeeData.employmentInfo?.organizationId || employeeData.organizationId || '',
           departmentId: employeeData.employmentInfo?.departmentId || employeeData.departmentId || '',
@@ -127,17 +128,18 @@ export default function EditEmployee() {
           endDate: employeeData.employmentInfo?.endDate || employeeData.endDate || '',
           supervisor: employeeData.employmentInfo?.supervisor || employeeData.supervisor || '',
           workLocation: employeeData.employmentInfo?.workLocation || employeeData.workLocation || '',
-        },
-        payrollInfo: {
+          officeId: employeeData.employmentInfo?.officeId || '',
+            },
+            payrollInfo: {
           salary: employeeData.payrollInfo?.salary || employeeData.salary || '',
-          bankAccount: {
+              bankAccount: {
             bankName: employeeData.payrollInfo?.bankAccount?.bankName || '',
             accountNumber: employeeData.payrollInfo?.bankAccount?.accountNumber || '',
             accountName: employeeData.payrollInfo?.bankAccount?.accountName || '',
-          },
+              },
           socialSecurityNumber: employeeData.payrollInfo?.socialSecurityNumber || '',
           taxId: employeeData.payrollInfo?.taxId || '',
-        },
+            },
         userId: employeeData.userId || '',
         isActive: employeeData.isActive !== undefined ? employeeData.isActive : true,
         profileImage: employeeData.profileImage || '',
@@ -149,13 +151,13 @@ export default function EditEmployee() {
       // ถ้ามี organizationId ให้โหลดข้อมูลแผนก
       if (updatedFormData.employmentInfo.organizationId) {
         loadDepartments(updatedFormData.employmentInfo.organizationId);
-      }
-      
+        }
+        
       // ถ้ามี departmentId ให้โหลดข้อมูลตำแหน่ง
       if (updatedFormData.employmentInfo.departmentId) {
         loadPositions(updatedFormData.employmentInfo.departmentId);
-      }
-      
+        }
+
       // ตรวจสอบ userId ทันทีหลังจากโหลดข้อมูล
       if (updatedFormData.userId) {
         await validateUserIdConnection(updatedFormData.userId);
@@ -201,10 +203,10 @@ export default function EditEmployee() {
         console.log('ข้อมูลได้รับการ sync แล้ว');
       } else {
         console.log('ข้อมูลยังไม่ได้รับการ sync');
-      }
-      
+        }
+
       return userData;
-    } catch (error) {
+      } catch (error) {
       console.error('Error validating userId connection:', error);
       setUserIdError('ເກີດຂໍ້ຜິດພາດໃນການກວດສອບ userId');
       setUserIdFixed(false);
@@ -232,6 +234,10 @@ export default function EditEmployee() {
         const { getAllOrganizations } = await import('@/firebase/organizations');
         const orgs = await getAllOrganizations();
         setOrganizations(orgs);
+        
+        // โหลดข้อมูลสำนักงาน
+        const officesData = await getAllOffices('active');
+        setOffices(officesData);
         
         // โหลดข้อมูลพนักงาน
         await fetchEmployee();
@@ -264,7 +270,7 @@ export default function EditEmployee() {
       setUserIdFixed(false);
     }
   };
-
+  
   // ฟังก์ชันโหลดข้อมูลผู้ใช้ทั้งหมด
   const fetchAllUsers = async () => {
     try {
@@ -275,7 +281,7 @@ export default function EditEmployee() {
       toast.error('ເກີດຂໍ້ຜິດພາດໃນການໂຫຼດຂໍ້ມູນຜູ້ໃຊ້');
     }
   };
-  
+
   // ฟังก์ชันเลือกผู้ใช้สำหรับเชื่อมโยง
   const selectUser = async (user) => {
     try {
@@ -340,7 +346,7 @@ export default function EditEmployee() {
       setSyncingData(false);
     }
   };
-  
+    
   // ฟังก์ชัน reset และ sync ข้อมูลใหม่
   const handleResetData = async () => {
     try {
@@ -352,8 +358,8 @@ export default function EditEmployee() {
       }
       
       // รีเซ็ตข้อมูลส่วนตัว
-      setFormData(prev => ({
-        ...prev,
+        setFormData(prev => ({
+          ...prev,
         personalInfo: {
           firstName: '',
           lastName: '',
@@ -366,7 +372,7 @@ export default function EditEmployee() {
           nationalId: '',
           contactEmail: '',
           contactPhone: '',
-        }
+            }
       }));
       
       // sync ข้อมูลจากผู้ใช้
@@ -398,13 +404,13 @@ export default function EditEmployee() {
     } else if (fieldPath.length === 2) {
       // ฟิลด์ระดับที่ 2
       const [section, field] = fieldPath;
-      setFormData(prev => ({
-        ...prev,
+        setFormData(prev => ({
+          ...prev,
         [section]: {
           ...prev[section],
           [field]: value
-        }
-      }));
+          }
+        }));
     } else if (fieldPath.length === 3) {
       // ฟิลด์ระดับที่ 3
       const [section, subSection, field] = fieldPath;
@@ -447,9 +453,9 @@ export default function EditEmployee() {
       if (!formData.personalInfo.firstName || !formData.personalInfo.lastName || !formData.employmentInfo.employeeId) {
         toast.error('ກະລຸນາປ້ອນຂໍ້ມູນທີ່ຈຳເປັນໃຫ້ຄົບຖ້ວນ');
         setSaving(false);
-        return;
-      }
-      
+      return;
+    }
+    
       // สร้างข้อมูลที่จะบันทึก
       const employeeData = {
         ...formData,
@@ -504,7 +510,7 @@ export default function EditEmployee() {
     // หาชื่อแผนกจาก departmentId
     const selectedDept = departments.find(dept => dept.id === departmentId);
     const departmentName = selectedDept ? (selectedDept.name_lo || selectedDept.name) : '';
-    
+          
     // อัปเดต formData
     setFormData(prev => ({
       ...prev,
@@ -520,7 +526,7 @@ export default function EditEmployee() {
     // โหลดข้อมูลตำแหน่ง
     if (departmentId) {
       loadPositions(departmentId);
-    } else {
+      } else {
       setPositions([]);
     }
   };
@@ -528,11 +534,11 @@ export default function EditEmployee() {
   // ฟังก์ชันจัดการการเลือกตำแหน่ง
   const handlePositionChange = (e) => {
     const positionId = e.target.value;
-    
+  
     // หาชื่อตำแหน่งจาก positionId
     const selectedPos = positions.find(pos => pos.id === positionId);
     const positionName = selectedPos ? (selectedPos.name_lo || selectedPos.title_lo || selectedPos.name || selectedPos.title) : '';
-    
+      
     // อัปเดต formData
     setFormData(prev => ({
       ...prev,
@@ -540,6 +546,25 @@ export default function EditEmployee() {
         ...prev.employmentInfo,
         positionId,
         positionName,
+      }
+    }));
+  };
+
+  // ฟังก์ชันจัดการการเลือกสำนักงาน
+  const handleOfficeChange = (e) => {
+    const officeId = e.target.value;
+    
+    // หาชื่อสำนักงานจาก officeId
+    const selectedOffice = offices.find(office => office.id === officeId);
+    const officeName = selectedOffice ? selectedOffice.name : '';
+    
+    // อัปเดต formData
+    setFormData(prev => ({
+      ...prev,
+      employmentInfo: {
+        ...prev.employmentInfo,
+        officeId,
+        officeName,
       }
     }));
   };
@@ -555,7 +580,7 @@ export default function EditEmployee() {
       toast.error('ບໍ່ສາມາດໂຫລດຂໍ້ມູນພະແນກໄດ້');
     }
   };
-
+  
   // ฟังก์ชันโหลดข้อมูลตำแหน่ง
   const loadPositions = async (departmentId) => {
     try {
@@ -797,13 +822,13 @@ export default function EditEmployee() {
                   )}
                   
                   {allUsers.length === 0 && (
-                    <button
-                      type="button"
-                      onClick={fetchAllUsers}
+                  <button
+                    type="button"
+                    onClick={fetchAllUsers}
                       className="mt-2 px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
-                    >
+                  >
                       ໂຫລດຂໍ້ມູນຜູ້ໃຊ້
-                    </button>
+                  </button>
                   )}
                 </div>
               )}
@@ -839,7 +864,7 @@ export default function EditEmployee() {
                   />
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="mb-4">
                   <label htmlFor="personalInfo.firstName_lo" className="block text-sm font-medium text-gray-700 mb-1">
@@ -869,7 +894,7 @@ export default function EditEmployee() {
                   />
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="mb-4">
                   <label htmlFor="personalInfo.contactEmail" className="block text-sm font-medium text-gray-700 mb-1">
@@ -897,8 +922,8 @@ export default function EditEmployee() {
                     onChange={handleChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   />
-                </div>
               </div>
+            </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="mb-4">
@@ -980,52 +1005,52 @@ export default function EditEmployee() {
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 />
-              </div>
-
+            </div>
+            
               <div className="mt-6 border-t pt-4">
                 <h3 className="text-lg font-medium mb-3">ທີ່ຢູ່</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="mb-4">
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="mb-4">
                     <label htmlFor="address.village" className="block text-sm font-medium text-gray-700 mb-1">
-                      ບ້ານ
-                    </label>
-                    <input
-                      type="text"
+                    ບ້ານ
+                  </label>
+                  <input
+                    type="text"
                       id="address.village"
                       name="address.village"
                       value={formData.address.village}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                  
-                  <div className="mb-4">
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                
+                <div className="mb-4">
                     <label htmlFor="address.district" className="block text-sm font-medium text-gray-700 mb-1">
-                      ເມືອງ
-                    </label>
-                    <input
-                      type="text"
+                    ເມືອງ
+                  </label>
+                  <input
+                    type="text"
                       id="address.district"
                       name="address.district"
                       value={formData.address.district}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                  
-                  <div className="mb-4">
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                
+                <div className="mb-4">
                     <label htmlFor="address.province" className="block text-sm font-medium text-gray-700 mb-1">
-                      ແຂວງ
-                    </label>
-                    <input
-                      type="text"
+                    ແຂວງ
+                  </label>
+                  <input
+                    type="text"
                       id="address.province"
                       name="address.province"
                       value={formData.address.province}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    />
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  />
                   </div>
                 </div>
               </div>
@@ -1278,6 +1303,28 @@ export default function EditEmployee() {
                   </select>
                 </div>
                 
+                <div className="mb-4">
+                  <label htmlFor="employmentInfo.officeId" className="block text-sm font-medium text-gray-700 mb-1">
+                    ສຳນັກງານ/ຈຸດກວດ
+                  </label>
+                  <select
+                    id="employmentInfo.officeId"
+                    name="employmentInfo.officeId"
+                    value={formData.employmentInfo.officeId || ''}
+                    onChange={handleOfficeChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">ເລືອກສຳນັກງານ</option>
+                    {offices.map((office) => (
+                      <option key={office.id} value={office.id}>
+                        {office.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="mb-4">
                   <label htmlFor="employmentInfo.departmentId" className="block text-sm font-medium text-gray-700 mb-1">
                     ພະແນກ

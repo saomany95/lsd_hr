@@ -706,9 +706,9 @@ export default function EmployeesManagement() {
                               {selectedEmployee.employmentInfo?.positionName || selectedEmployee.positionName || getPositionName(selectedEmployee.employmentInfo?.positionId || selectedEmployee.positionId) || '-'}
                             </span>
                           </div>
+                          </div>
                         </div>
-                      </div>
-                      
+                        
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1">
                           <label className="text-sm font-medium text-gray-600">ປະເພດການຈ້າງ</label>

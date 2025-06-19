@@ -76,6 +76,15 @@ service cloud.firestore {
       );
     }
     
+    // กฎสำหรับคอลเลกชัน offices
+    match /offices/{officeId} {
+      // อ่านข้อมูลได้เฉพาะผู้ใช้ที่ล็อกอินแล้ว
+      allow read: if isAuthenticated();
+      
+      // เขียนข้อมูลได้เฉพาะ admin
+      allow write: if isAuthenticated() && isAdmin();
+    }
+    
     // กฎเริ่มต้นสำหรับทุกคอลเลกชันที่ไม่ได้กำหนดกฎเฉพาะ
     match /{document=**} {
       // ปิดการเข้าถึงทั้งหมดสำหรับคอลเลกชันที่ไม่ได้กำหนดกฎเฉพาะ

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { Building2, Users, FileText, ArrowLeft, Briefcase, Calendar, Menu, X, Database, ChevronDown, ChevronUp, LayoutDashboard, UserCircle, Settings, MapPin } from 'lucide-react';
+import { Building2, Users, FileText, ArrowLeft, Briefcase, Calendar, Menu, X, Database, ChevronDown, ChevronUp, LayoutDashboard, UserCircle, Settings, MapPin, CheckCheckIcon } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
@@ -31,6 +31,11 @@ export default function AdminLayout({ children }) {
       name: 'ຈັດການວັນພັກ',
       path: '/admin/leaves',
       icon: <Calendar className="w-5 h-5" />
+    },
+    {
+      name: 'ຈັດການສຳນັກງານ',
+      path: '/admin/offices',
+      icon: <MapPin className="w-5 h-5" />
     }
   ];
   

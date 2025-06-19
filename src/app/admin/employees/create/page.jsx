@@ -11,6 +11,7 @@ import { createEmployee } from '@/firebase/employees';
 import { getAllOrganizations } from '@/firebase/organizations';
 import { getDepartmentsByOrganization } from '@/firebase/departments';
 import { getPositionsByDepartment } from '@/firebase/positions';
+import { getAllOffices } from '@/firebase/offices';
 
 export default function CreateEmployee() {
   const router = useRouter();
@@ -23,15 +24,16 @@ export default function CreateEmployee() {
   const [organizations, setOrganizations] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [positions, setPositions] = useState([]);
+  const [offices, setOffices] = useState([]);
   const [loadingDepartments, setLoadingDepartments] = useState(false);
   const [loadingPositions, setLoadingPositions] = useState(false);
   
   const [formData, setFormData] = useState({
     personalInfo: {
-      firstName: '',
-      lastName: '',
-      firstName_lo: '',
-      lastName_lo: '',
+    firstName: '',
+    lastName: '',
+    firstName_lo: '',
+    lastName_lo: '',
       gender: '',
       dateOfBirth: '',
       maritalStatus: '',
@@ -52,6 +54,8 @@ export default function CreateEmployee() {
       departmentName: '',
       positionId: '',
       positionName: '',
+      officeId: '',
+      officeName: '',
       employmentType: '',
       status: 'active',
       hireDate: '',
@@ -217,7 +221,24 @@ export default function CreateEmployee() {
       employmentInfo: {
         ...prev.employmentInfo,
         positionId: positionId,
-        positionName: selectedPos ? (selectedPos.title_lo || selectedPos.title || selectedPos.name_lo || selectedPos.name) : ''
+        positionName: selectedPos ? (selectedPos.name_lo || selectedPos.title_lo || selectedPos.name || selectedPos.title) : ''
+      }
+    }));
+  };
+
+  // ฟังก์ชันสำหรับการเลือกสำนักงาน
+  const handleOfficeChange = (e) => {
+    const officeId = e.target.value;
+    const selectedOffice = offices.find(office => office.id === officeId);
+    
+    // อัปเดต officeId และ officeName ใน employmentInfo
+    setFormData(prev => ({
+      ...prev,
+      employmentInfo: {
+        ...prev.employmentInfo,
+        officeId: officeId,
+        officeName: selectedOffice ? selectedOffice.name : '',
+        workLocation: selectedOffice ? selectedOffice.location || '' : ''
       }
     }));
   };
@@ -225,6 +246,7 @@ export default function CreateEmployee() {
   // โหลดข้อมูลองค์กรเมื่อเริ่มต้น
   useEffect(() => {
     loadOrganizations();
+    loadOffices();
   }, []);
 
   const handleSelectUser = (user) => {
@@ -351,6 +373,18 @@ export default function CreateEmployee() {
       toast.error('ເກີດຂໍ້ຜິດພາດໃນການເພີ່ມຂໍ້ມູນພະນັກງານ');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ฟังก์ชันสำหรับโหลดข้อมูลสำนักงานทั้งหมด
+  const loadOffices = async () => {
+    try {
+      const officeData = await getAllOffices('active');
+      setOffices(officeData);
+      console.log('Offices loaded:', officeData.length);
+    } catch (error) {
+      console.error('Error loading offices:', error);
+      toast.error('ເກີດຂໍ້ຜິດພາດໃນການໂຫລດຂໍ້ມູນສຳນັກງານ');
     }
   };
 
@@ -713,10 +747,10 @@ export default function CreateEmployee() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
               <div>
                 <label htmlFor="employmentInfo.employeeId" className="block text-sm font-medium text-gray-700 mb-1">
-                  ລະຫັດພະນັກງານ
-                </label>
-                <input
-                  type="text"
+                ລະຫັດພະນັກງານ
+              </label>
+              <input
+                type="text"
                   id="employmentInfo.employeeId"
                   name="employmentInfo.employeeId"
                   value={formData.employmentInfo.employeeId}
@@ -881,14 +915,20 @@ export default function CreateEmployee() {
                 <label htmlFor="employmentInfo.workLocation" className="block text-sm font-medium text-gray-700 mb-1">
                   ສະຖານທີ່ເຮັດວຽກ
                 </label>
-                <input
-                  type="text"
-                  id="employmentInfo.workLocation"
-                  name="employmentInfo.workLocation"
-                  value={formData.employmentInfo.workLocation}
-                  onChange={handleChange}
+                <select
+                  id="employmentInfo.officeId"
+                  name="employmentInfo.officeId"
+                  value={formData.employmentInfo.officeId}
+                  onChange={handleOfficeChange}
                   className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
+                >
+                  <option value="">ເລືອກສຳນັກງານ/ຈຸດກວດ</option>
+                  {offices.map((office) => (
+                    <option key={office.id} value={office.id}>
+                      {office.name} ({office.location})
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>
@@ -998,16 +1038,16 @@ export default function CreateEmployee() {
             
             <div className="mb-4">
               <label htmlFor="isActive" className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="isActive"
-                  name="isActive"
-                  checked={formData.isActive}
-                  onChange={handleChange}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
+              <input
+                type="checkbox"
+                id="isActive"
+                name="isActive"
+                checked={formData.isActive}
+                onChange={handleChange}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
                 <span className="ml-2 block text-sm text-gray-900">
-                  ພະນັກງານຍັງເຮັດວຽກຢູ່
+                ພະນັກງານຍັງເຮັດວຽກຢູ່
                 </span>
               </label>
             </div>
